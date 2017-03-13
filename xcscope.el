@@ -859,6 +859,12 @@ be removed by quitting the cscope buffer."
   :group 'cscope)
 
 
+(defcustom cscope-fallback-last-known-database nil
+  "If non-nil, the previous cscope database is used when no cscope database is found."
+  :type 'boolean
+  :group 'cscope)
+
+
 (defcustom cscope-close-window-after-select nil
   "If non-nil close the window showing the cscope buffer after an entry has been selected."
   :type 'boolean
@@ -1179,6 +1185,9 @@ buffer.")
 (defvar cscope-initial-directory nil
   "When set the directory in which searches for the cscope database
 directory should begin.")
+
+(defvar cscope-last-database-directory nil
+  "When cscope database is not found, use the previously known location")
 
 (defvar cscope-result-filter ""
   "The results from cscope must contain the given string.")
@@ -2225,6 +2234,7 @@ Starting from DIRECTORY, look upwards for a cscope database."
 		(file-exists-p (concat this-directory cscope-index-file)))
 	    (progn
 	      (setq database-dir this-directory)
+          (setq cscope-last-database-directory this-directory)
 	      (throw 'done database-dir)
 	      ))
 
@@ -2233,7 +2243,10 @@ Starting from DIRECTORY, look upwards for a cscope database."
                                   (directory-file-name this-directory)))))
           (if (string= this-directory parent-directory)
               (throw 'done directory)
-            (setq this-directory parent-directory)))))))
+            (setq this-directory parent-directory))))))
+  (if (and (not this-directory)
+           cscope-fallback-last-known-database)
+      cscope-last-database-directory))
 
 
 (defun cscope-find-info (top-directory)
