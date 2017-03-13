@@ -2148,7 +2148,9 @@ cscope-initial-directory variable, when set, specifies the directory
 where searches for the cscope database directory should begin.  This
 overrides the current directory, which would otherwise be used."
   (interactive "DCscope Initial Directory: ")
-  (setq cscope-initial-directory cs-id))
+  (setq cscope-initial-directory cs-id)
+  (if (eq (get-buffer cscope-output-buffer-name) (current-buffer))
+      (cscope-rerun-search-at-point)))
 
 
 (defun cscope-unset-initial-directory ()
@@ -2726,6 +2728,9 @@ this is."
       (insert msg)
       (unless (string= "" cscope-result-filter)
         (insert "\nResult filter: " (cscope-boldify-if-needed cscope-result-filter)))
+      (unless (or (eq cscope-initial-directory nil)
+                  (string= "" cscope-initial-directory))
+        (insert "\nInitial directory: " (cscope-boldify-if-needed cscope-initial-directory)))
       (cscope-search-one-database))
 
     (if cscope-display-cscope-buffer
