@@ -853,6 +853,12 @@ be removed by quitting the cscope buffer."
   :group 'cscope)
 
 
+(defcustom cscope-allow-highlight-overlays nil
+  "If non-nil, highlight selected line momentarily."
+  :type 'boolean
+  :group 'cscope)
+
+
 (defcustom cscope-close-window-after-select nil
   "If non-nil close the window showing the cscope buffer after an entry has been selected."
   :type 'boolean
@@ -1176,6 +1182,34 @@ directory should begin.")
 (defvar cscope-prompt-minibuffer-history nil
   "The history of terms we searched for. This is one common
 history for ALL search types.")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defvar cscope-highlight-overlay (make-overlay 1 1)
+  "Overlay used for highlighting current line.")
+
+(defvar cscope-highlight-timer (timer-create)
+  "Duration of line highlight flash.")
+
+(defun cscope-unhighlight-line ()
+  (delete-overlay cscope-highlight-overlay))
+
+(defun cscope-highlight-line ()
+  ;; reset old overlay
+  (cancel-timer cscope-highlight-timer)
+  (cscope-unhighlight-line)
+  ;; get positions
+  (setq current-point (point))
+  (beginning-of-line)
+  (setq beg (point))
+  (forward-line 1)
+  (setq end (point))
+  (forward-line -1)
+  ;; create and place the overlay
+  (overlay-put cscope-highlight-overlay 'face '(:inherit region))
+  (move-overlay cscope-highlight-overlay beg end)
+  ;; set timer to remove the overlay
+  (setq cscope-highlight-timer (run-at-time 1 nil #'cscope-unhighlight-line)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1565,6 +1599,10 @@ Returns the window displaying BUFFER."
                   ;; if we need to remove a marker, do that if there is one
                   (when overlay-arrow-position
                     (set-marker overlay-arrow-position nil)))
+
+        ;; if we are using a highlight overlay
+        (if cscope-allow-highlight-overlays
+            (cscope-highlight-line))
 
 		(or (not save-mark-p)
 		    (= old-pos (point))
