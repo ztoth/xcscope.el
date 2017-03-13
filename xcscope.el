@@ -1031,6 +1031,7 @@ selected for it")
     (define-key map (kbd "M-K") 'cscope-history-kill-result)
     (define-key map "u"         'cscope-pop-mark)
     ;; ---
+    (define-key map "R" 'cscope-set-result-filter)
     (define-key map "r" 'cscope-rerun-search-at-point)
     ;; ---
     (define-key map "a" 'cscope-set-initial-directory)
@@ -1178,6 +1179,9 @@ buffer.")
 (defvar cscope-initial-directory nil
   "When set the directory in which searches for the cscope database
 directory should begin.")
+
+(defvar cscope-result-filter ""
+  "The results from cscope must contain the given string.")
 
 (defvar cscope-prompt-minibuffer-history nil
   "The history of terms we searched for. This is one common
@@ -2114,6 +2118,12 @@ modified in-place"
       (goto-char beg)
       (eval search))))
 
+(defun cscope-set-result-filter ()
+  (interactive)
+  (setq cscope-result-filter (read-string "Cscope result filter: "))
+  (if (eq (get-buffer cscope-output-buffer-name) (current-buffer))
+      (cscope-rerun-search-at-point)))
+
 (defun cscope-set-initial-directory (cs-id)
   "Set the cscope-initial-directory variable.  The
 cscope-initial-directory variable, when set, specifies the directory
@@ -2366,10 +2376,16 @@ using the mouse."
             (if (= (length cscope-process-output) 0)
                 (setq cscope-process-output nil))
 
+            ;; Skip line if it does not match filter
+            (setq skip-line nil)
+            (if (not (string-match cscope-result-filter line))
+                (setq skip-line t))
+
             ;; This should always match.
-            (if (string-match
-                 "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
-                 line)
+            (if (and (not skip-line)
+                     (string-match
+                      "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)[ \t]+\\([0-9]+\\)[ \t]+\\(.*\\)\n"
+                      line))
                 (progn
                   (let (str)
                     (setq file (substring line (match-beginning 1)
@@ -2418,7 +2434,8 @@ using the mouse."
                     (insert "\n")
                     (setq cscope-last-file file)
                     ))
-              (insert line "\n")
+              (if (not skip-line)
+                  (insert line "\n"))
               ))
           (setq cscope-last-output-point (point)))
         (set-buffer-modified-p nil)))))
@@ -2682,6 +2699,8 @@ this is."
           (put-text-property separator-start (1- (point)) 'cscope-stored-search cscope-previous-user-search)))
 
       (insert msg)
+      (unless (string= "" cscope-result-filter)
+        (insert "\nResult filter: " (cscope-boldify-if-needed cscope-result-filter)))
       (cscope-search-one-database))
 
     (if cscope-display-cscope-buffer
