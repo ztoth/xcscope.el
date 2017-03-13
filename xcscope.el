@@ -1013,7 +1013,7 @@ selected for it")
     (define-key map "?" 'cscope-help)
     ;; The following line corresponds to be beginning of the "Cscope" menu.
     (define-key map "s" 'cscope-find-this-symbol)
-    (define-key map "d" 'cscope-find-this-symbol)
+    (define-key map "d" 'cscope-find-global-definition)
     (define-key map "g" 'cscope-find-global-definition)
     (define-key map "G" 'cscope-find-global-definition-no-prompting)
     (define-key map "=" 'cscope-find-assignments-to-this-symbol)
