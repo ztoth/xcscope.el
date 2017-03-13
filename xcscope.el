@@ -904,7 +904,7 @@ returned by the `cscope-program' function, if it is a function."
 
 
 (defconst cscope-result-separator
-  "===============================================================================\n"
+  "=============================================================================================\n"
   "Line of text to use as a visual separator.
 Must end with a newline. Must work as a regex without quoting")
 
@@ -2182,8 +2182,7 @@ overrides the current directory, which would otherwise be used."
   "Clean up cscope, if necessary, and bury the buffer."
   (interactive)
   (cscope-cleanup-overlay-arrow)
-  (bury-buffer))
-
+  (quit-window))
 
 
 (defun cscope-quit ()
@@ -2509,7 +2508,7 @@ using the mouse."
                   (insert (format "  Search time = %.2f seconds."
                                   elapsed-time))
                   ))
-            (insert "\n")
+            (insert "\n\n")
             (setq cscope-process nil)
             (if cscope-running-in-xemacs
                 (setq modeline-process ": Search complete"))
@@ -2527,6 +2526,10 @@ using the mouse."
                 (set-window-point window cscope-first-match-point)
               (goto-char cscope-first-match-point))
           )
+
+        (if cscope-first-match-point
+            (goto-char cscope-first-match-point)
+          (message "cscope: no matches were found"))
 
         (when cscope-first-match-point
           (if cscope-display-cscope-buffer
@@ -2715,6 +2718,7 @@ this is."
 
       ;; insert the separator at the start of the result set
       (unless (boundp 'cscope-rerunning-search) (goto-char (point-max)))
+      (goto-char (point-min))
       (when (not (bolp))
         (insert "\n"))
 
@@ -2735,10 +2739,14 @@ this is."
 
     (if cscope-display-cscope-buffer
         (progn
-          (pop-to-buffer outbuf)
+          (if (window-live-p (get-buffer-window cscope-output-buffer-name))
+              (pop-to-buffer outbuf)
+            (pop-to-buffer outbuf 'other-window))
           (cscope-help))
       (if cscope-pop-to-buffer
-          (pop-to-buffer outbuf)
+          (if (window-live-p (get-buffer-window cscope-output-buffer-name))
+              (pop-to-buffer outbuf)
+            (pop-to-buffer outbuf 'other-window))
         (set-buffer outbuf)))
     (cscope-list-entry-mode)
     ))
