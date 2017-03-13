@@ -1183,6 +1183,13 @@ directory should begin.")
 (defvar cscope-result-filter ""
   "The results from cscope must contain the given string.")
 
+(defvar cscope-revert-display-buffer nil
+  "Temporarily disable showing cscope buffer (if it's enabled by user).")
+
+(defvar cscope-pop-to-buffer nil
+  "Use pop-to-buffer when showing result triggered by jumping to global
+definition.")
+
 (defvar cscope-prompt-minibuffer-history nil
   "The history of terms we searched for. This is one common
 history for ALL search types.")
@@ -2528,7 +2535,10 @@ using the mouse."
                   (delete-region (point-min) cut-at-point))))))
 
         (if (and done (eq old-buffer buffer) cscope-first-match-point)
-            (cscope-help))))))
+            (cscope-help))
+        (when cscope-revert-display-buffer
+          (setq cscope-display-cscope-buffer t)
+          (setq cscope-revert-display-buffer nil))))))
 
 
 
@@ -2704,10 +2714,12 @@ this is."
       (cscope-search-one-database))
 
     (if cscope-display-cscope-buffer
-	(progn
-	  (pop-to-buffer outbuf)
-	  (cscope-help))
-      (set-buffer outbuf))
+        (progn
+          (pop-to-buffer outbuf)
+          (cscope-help))
+      (if cscope-pop-to-buffer
+          (pop-to-buffer outbuf)
+        (set-buffer outbuf)))
     (cscope-list-entry-mode)
     ))
 
@@ -3126,6 +3138,24 @@ file."
   (cscope-call "Finding assignments to symbol:" 9 symbol)
   )
 
+(defun cscope-jump-global-definition ()
+  "Jump to global definition helper function"
+  (when cscope-display-cscope-buffer
+    (setq cscope-display-cscope-buffer nil)
+    (setq cscope-revert-display-buffer t))
+  (cscope-find-global-definition-no-prompting))
+
+(defun cscope-jump-global-definition-no-prompting ()
+  "Find and select a symbol's global definition without prompting."
+  (interactive)
+  (cscope-jump-global-definition))
+
+(defun cscope-jump-global-definition-no-prompting-other-window ()
+  "Find and select a symbol's global definition in another window without prompting."
+  (interactive)
+  (setq cscope-pop-to-buffer t)
+  (cscope-jump-global-definition)
+  (setq cscope-pop-to-buffer nil))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
