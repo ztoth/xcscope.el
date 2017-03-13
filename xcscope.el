@@ -3157,6 +3157,57 @@ file."
   (cscope-jump-global-definition)
   (setq cscope-pop-to-buffer nil))
 
+(defun cscope-find-function-list ()
+  "Find and list functions in current buffer."
+  (interactive)
+  ;; get function list, ignore *Rescan* and Class
+  (require 'imenu)
+  (setq imenu--index-alist nil)
+  (setq file (buffer-file-name))
+  (if (not file)
+      (error "cscope: file not found"))
+  (setq file-buffer (current-buffer))
+  (setq functions-alist (imenu--make-index-alist t))
+  (if (string= (car (car functions-alist)) "*Rescan*")
+      (setq functions-alist (cdr functions-alist)))
+  (if (string= (car (car functions-alist)) "Class")
+      (setq functions-alist (cdr functions-alist)))
+  (if (eq (car functions-alist) nil)
+      (error "cscope: no functions found in %s" file))
+  (let ((outbuf (get-buffer-create cscope-output-buffer-name)))
+    (set-buffer outbuf)
+    (unless (boundp 'cscope-rerunning-search) (goto-char (point-max)))
+    (goto-char (point-min))
+    (let ((separator-start (point)))
+      (insert cscope-result-separator)
+      (when cscope-use-face
+        (put-text-property separator-start (1- (point)) 'face 'cscope-separator-face)
+        (put-text-property separator-start (1- (point)) 'cscope-stored-search cscope-previous-user-search)))
+    (insert "List of functions in current buffer\n\n")
+    (setq str (concat "*** " file ":"))
+    (if cscope-use-face
+        (put-text-property 0 (length str) 'face 'cscope-file-face str))
+    (cscope-insert-with-text-properties str (expand-file-name file))
+    (insert "\n")
+    (setq first-line (point))
+    (while functions-alist
+      (setq fn (car (car functions-alist)))
+      (setq pos (split-string (format "%s" (cdr (assoc fn functions-alist)))))
+      (with-current-buffer (or file-buffer (current-buffer))
+        (save-excursion
+          (switch-to-buffer file-buffer)
+          (setq line-number (line-number-at-pos (string-to-number (nth 2 pos))))))
+      (cscope-insert-with-text-properties
+       (cscope-make-entry-line fn (format "%d" line-number) "") file line-number "")
+      (insert "\n")
+      (setq functions-alist (cdr functions-alist)))
+    (insert "\nSearch complete.\n\n")
+    (if (window-live-p (get-buffer-window cscope-output-buffer-name))
+        (pop-to-buffer outbuf)
+      (pop-to-buffer outbuf 'other-window))
+    (goto-char first-line)
+    (cscope-list-entry-mode)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
