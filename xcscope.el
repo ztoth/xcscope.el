@@ -1545,6 +1545,8 @@ Returns the window displaying BUFFER."
                   (forward-line (1- line-number)))
 
 		(setq old-point (point))
+        (if (and (boundp 'hs-minor-mode) hs-minor-mode)
+            (ignore-errors (hs-show-block)))
 
                 ;; Here I perform a fuzzy search. If the user has edited the
                 ;; sources after building the cscope database, cscope may have
